@@ -1,3 +1,4 @@
+import { service } from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -19,11 +20,14 @@ import {
 } from '@loopback/rest';
 import {Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
+import { AdministradorClavesService } from '../services';
 
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
     public usuarioRepository : UsuarioRepository,
+    @service(AdministradorClavesService)
+    public servicioClaves: AdministradorClavesService
   ) {}
 
   @post('/usuarios')
@@ -44,7 +48,17 @@ export class UsuarioController {
     })
     usuario: Omit<Usuario, '_id'>,
   ): Promise<Usuario> {
-    return this.usuarioRepository.create(usuario);
+    let clave = this.servicioClaves.CrearClaveAleatoria();
+    //console.log(clave)
+    let claveCifrada = this.servicioClaves.CifrarTexto(clave);
+    usuario.clave = claveCifrada;
+    let usuarioCreado = await this.usuarioRepository.create(usuario);
+    
+    if(usuarioCreado){
+      //enviar la clave por correo electronico si fue creado correctamente
+    }
+
+    return usuarioCreado;
   }
 
   @get('/usuarios/count')
