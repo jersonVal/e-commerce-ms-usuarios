@@ -18,16 +18,19 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
-import {CambioClave, Credenciales, Usuario} from '../models';
+import { Configuracion } from '../keys/config';
+import {CambioClave, Credenciales, NotificacionCorreo, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
-import { AdministradorClavesService } from '../services';
+import { AdministradorClavesService, NotificacionesService } from '../services';
 
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
     public usuarioRepository : UsuarioRepository,
     @service(AdministradorClavesService)
-    public servicioClaves: AdministradorClavesService
+    public servicioClaves: AdministradorClavesService,
+    @service(NotificacionesService)
+    public servicioNotificaciones : NotificacionesService
   ) {}
 
   @post('/usuarios')
@@ -195,7 +198,7 @@ export class UsuarioController {
   }
 
 
-  @post('/cambiar-clavee')
+  @post('/cambiar-clave')
   @response(200, {
     description: 'Cambio de clave de usuarios',
     content: {'application/json': {schema: getModelSchemaRef(CambioClave)}},
@@ -213,16 +216,21 @@ export class UsuarioController {
     credencialesClave: CambioClave,
   ): Promise<Boolean> {
     
-    let respuesta = await this.servicioClaves.CambiarClave(credencialesClave);
-    if(respuesta){
+    let usuario = await this.servicioClaves.CambiarClave(credencialesClave);
+    if(usuario){
       //invocar al servicio de notificaciones para enviar correo al usuario
+      let datos = new NotificacionCorreo();
+      datos.destino = usuario.correo;
+      datos.asunto = Configuracion.asuntoCambioClave;
+      datos.mensaje = `Hola ${usuario.nombre} <br> ${Configuracion.mensajeCambioClave}`
+      this.servicioNotificaciones.EnviarCorreo(datos);
     }
     
-    return respuesta;
+    return usuario != null;
   }
 
 
-  @post('/recuperar-clavee')
+  @post('/recuperar-clave')
   @response(200, {
     description: 'Recuperar clave de usuarios',
     content: {'application/json': {schema: {}}},
