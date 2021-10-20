@@ -44,7 +44,7 @@ export class AdministradorClavesService {
     })
     if(usuario){
       //se actualizan los datos en la base de datos
-      usuario.clave = credencialesClave.nueva_clave
+      usuario.clave = this.CifrarTexto(credencialesClave.nueva_clave)
       await this.usuarioRepository.updateById(credencialesClave.id_usuario, usuario)
       return usuario;
     }else{

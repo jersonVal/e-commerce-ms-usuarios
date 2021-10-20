@@ -59,6 +59,11 @@ export class UsuarioController {
     
     if(usuarioCreado){
       //enviar la clave por correo electronico si fue creado correctamente
+      let datos = new NotificacionCorreo();
+      datos.destino = usuario.correo;
+      datos.asunto = Configuracion.asuntoCreacionUsuario;
+      datos.mensaje = `Hola ${usuario.nombre} <br> ${Configuracion.mensajeRegistro} <br> ${clave}`;
+      this.servicioNotificaciones.EnviarCorreo(datos);
     }
 
     return usuarioCreado;
@@ -191,6 +196,7 @@ export class UsuarioController {
       }
     })
     if(usuario){
+      usuario.clave = '';
       //generar token y agregarlo a la respuesta
     }
     // console.log(usuario)
