@@ -19,24 +19,24 @@ import {
   response,
 } from '@loopback/rest';
 import { Configuracion } from '../keys/config';
-import {CambioClave, Credenciales, NotificacionCorreo, Usuario} from '../models';
-import {UsuarioRepository} from '../repositories';
+import { CambioClave, Credenciales, CredencialesRecuperarClave, NotificacionCorreo, NotificacionSms, Usuario } from '../models';
+import { UsuarioRepository } from '../repositories';
 import { AdministradorClavesService, NotificacionesService } from '../services';
 
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
-    public usuarioRepository : UsuarioRepository,
+    public usuarioRepository: UsuarioRepository,
     @service(AdministradorClavesService)
     public servicioClaves: AdministradorClavesService,
     @service(NotificacionesService)
-    public servicioNotificaciones : NotificacionesService
-  ) {}
+    public servicioNotificaciones: NotificacionesService
+  ) { }
 
   @post('/usuarios')
   @response(200, {
     description: 'Usuario model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Usuario)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Usuario) } },
   })
   async create(
     @requestBody({
@@ -56,8 +56,8 @@ export class UsuarioController {
     let claveCifrada = this.servicioClaves.CifrarTexto(clave);
     usuario.clave = claveCifrada;
     let usuarioCreado = await this.usuarioRepository.create(usuario);
-    
-    if(usuarioCreado){
+
+    if (usuarioCreado) {
       //enviar la clave por correo electronico si fue creado correctamente
       let datos = new NotificacionCorreo();
       datos.destino = usuario.correo;
@@ -72,7 +72,7 @@ export class UsuarioController {
   @get('/usuarios/count')
   @response(200, {
     description: 'Usuario model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Usuario) where?: Where<Usuario>,
@@ -87,7 +87,7 @@ export class UsuarioController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Usuario, {includeRelations: true}),
+          items: getModelSchemaRef(Usuario, { includeRelations: true }),
         },
       },
     },
@@ -101,13 +101,13 @@ export class UsuarioController {
   @patch('/usuarios')
   @response(200, {
     description: 'Usuario PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Usuario, {partial: true}),
+          schema: getModelSchemaRef(Usuario, { partial: true }),
         },
       },
     })
@@ -122,13 +122,13 @@ export class UsuarioController {
     description: 'Usuario model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Usuario, {includeRelations: true}),
+        schema: getModelSchemaRef(Usuario, { includeRelations: true }),
       },
     },
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(Usuario, {exclude: 'where'}) filter?: FilterExcludingWhere<Usuario>
+    @param.filter(Usuario, { exclude: 'where' }) filter?: FilterExcludingWhere<Usuario>
   ): Promise<Usuario> {
     return this.usuarioRepository.findById(id, filter);
   }
@@ -142,7 +142,7 @@ export class UsuarioController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Usuario, {partial: true}),
+          schema: getModelSchemaRef(Usuario, { partial: true }),
         },
       },
     })
@@ -175,7 +175,7 @@ export class UsuarioController {
   @post('/identificar-usuario')
   @response(200, {
     description: 'Identificacion de usuarios',
-    content: {'application/json': {schema: getModelSchemaRef(Credenciales)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Credenciales) } },
   })
   async identificarUsuario(
     @requestBody({
@@ -190,12 +190,12 @@ export class UsuarioController {
     credenciales: Credenciales,
   ): Promise<Usuario | null> {
     let usuario = await this.usuarioRepository.findOne({
-      where:{
+      where: {
         correo: credenciales.usuario,
         clave: credenciales.clave
       }
     })
-    if(usuario){
+    if (usuario) {
       usuario.clave = '';
       //generar token y agregarlo a la respuesta
     }
@@ -207,7 +207,7 @@ export class UsuarioController {
   @post('/cambiar-clave')
   @response(200, {
     description: 'Cambio de clave de usuarios',
-    content: {'application/json': {schema: getModelSchemaRef(CambioClave)}},
+    content: { 'application/json': { schema: getModelSchemaRef(CambioClave) } },
   })
   async cambiarClave(
     @requestBody({
@@ -221,9 +221,9 @@ export class UsuarioController {
     })
     credencialesClave: CambioClave,
   ): Promise<Boolean> {
-    
+
     let usuario = await this.servicioClaves.CambiarClave(credencialesClave);
-    if(usuario){
+    if (usuario) {
       //invocar al servicio de notificaciones para enviar correo al usuario
       let datos = new NotificacionCorreo();
       datos.destino = usuario.correo;
@@ -231,7 +231,7 @@ export class UsuarioController {
       datos.mensaje = `Hola ${usuario.nombre} <br> ${Configuracion.mensajeCambioClave}`
       this.servicioNotificaciones.EnviarCorreo(datos);
     }
-    
+
     return usuario != null;
   }
 
@@ -239,23 +239,37 @@ export class UsuarioController {
   @post('/recuperar-clave')
   @response(200, {
     description: 'Recuperar clave de usuarios',
-    content: {'application/json': {schema: {}}},
-  })
+    content: {
+      'application/json': { schema: getModelSchemaRef(CredencialesRecuperarClave)}},
+    })
   async recuperarClave(
     @requestBody({
       content: {
         'application/json': {
-          schema: {},
+          schema: getModelSchemaRef(CredencialesRecuperarClave, {
+            title: 'Recuperar clave de usuario'
+          }),
         },
       },
     })
-    correo: string,
+    credenciales: CredencialesRecuperarClave,
   ): Promise<Usuario | null> {
-    let usuario = await this.servicioClaves.RecuperClave(correo);
-    if(usuario){
-      //invocar al servicio de notificaciones para enviar correo al usuario con la nueva clave
+    let usuario = await this.usuarioRepository.findOne({
+      where:{
+        correo: credenciales.correo,
+      }
+    })
+    if (usuario) {
+      const clave = this.servicioClaves.CrearClaveAleatoria();
+      usuario.clave = this.servicioClaves.CifrarTexto(clave);
+      await this.usuarioRepository.updateById(usuario._id, usuario)
+      //invocar al servicio de notificaciones para enviar SMS al usuario con la nueva clave
+      let datos = new NotificacionSms();
+      datos.destino = usuario.celular;
+      datos.mensaje = `Hola ${usuario.nombre} <br> ${Configuracion.mensajeRecuperar} <br> ${clave}`
+      this.servicioNotificaciones.EnviarSms(datos);
     }
-    
+
     return usuario;
   }
 }

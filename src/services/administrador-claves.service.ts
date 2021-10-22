@@ -1,7 +1,7 @@
 import {injectable, /* inject, */ BindingScope} from '@loopback/core';
 import { repository } from '@loopback/repository';
 import GeneratePassword from 'generate-password';
-import { CambioClave, Usuario } from '../models';
+import { CambioClave, CredencialesRecuperarClave, Usuario } from '../models';
 import { UsuarioRepository } from '../repositories';
 var CryptoJS = require("crypto-js");
 
@@ -15,25 +15,6 @@ export class AdministradorClavesService {
    * Add service methods here
    */
 
-
-  async RecuperClave(correo: string): Promise<Usuario | null>{
-    let usuario = await this.usuarioRepository.findOne({
-      where:{
-        correo: correo,
-      }
-    })
-
-    if(usuario){
-      //se actualizan los datos en la base de datos
-      let clave = this.CrearClaveAleatoria();
-      usuario.clave = this.CifrarTexto(clave);
-      await this.usuarioRepository.updateById(usuario._id, usuario)
-      //si todo sale bien se debe notificar el cambio de contraseña 
-      return usuario;
-    }else{
-      return null;
-    }    
-  }
 
   async CambiarClave(credencialesClave: CambioClave): Promise<Usuario | null>{
     let usuario = await this.usuarioRepository.findOne({
