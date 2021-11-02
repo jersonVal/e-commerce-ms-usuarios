@@ -5,6 +5,7 @@ export namespace Configuracion{
     export const hashNotificacion = 'Jer'
     export const urlCorreo = 'http://localhost:5000/correo'
     export const urlSms = 'http://localhost:5000/sms'
+    export const urlToken = 'http://localhost:5001/crear-token'
     export const asuntoCambioClave = 'Cambio de contraseña'
     export const asuntoCreacionUsuario = 'Registro en la plataforma'
 }
